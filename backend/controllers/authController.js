@@ -50,11 +50,13 @@ const registerUser = async (req, res) => {
       });
 
       if (!room) {
+        const token = crypto.randomBytes(16).toString('hex');
         room = await Room.create({
           roomNumber: roomNumber.toString().trim(),
           hostelBlock,
           capacity: 3,
-          qrToken: crypto.randomBytes(16).toString('hex')
+          qrToken: token,
+          qrImageUrl: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${token}`
         });
       }
 

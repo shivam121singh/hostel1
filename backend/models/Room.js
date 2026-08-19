@@ -1,13 +1,33 @@
 const mongoose = require('mongoose');
 
-const roomSchema = new mongoose.Schema({
-  hostelBlock: { type: String, required: true },
-  roomNumber: { type: String, required: true },
-  qrToken: { type: String, required: true, unique: true },
-  qrImageUrl: { type: String, required: true }
+const RoomSchema = new mongoose.Schema({
+  roomNumber: {
+    type: String,
+    required: true,
+  },
+  hostelBlock: {
+    type: String,
+    required: true,
+  },
+  capacity: {
+    type: Number,
+    default: 3,
+  },
+  qrToken: {
+    type: String,
+    default: '',
+  },
+  qrImageUrl: {
+    type: String,
+    required: false, // <-- Isko false kar dein ya required hata dein
+    default: '',
+  },
+  occupants: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    }
+  ]
 }, { timestamps: true });
 
-// Compound unique index to prevent duplicate rooms per block
-roomSchema.index({ hostelBlock: 1, roomNumber: 1 }, { unique: true });
-
-module.exports = mongoose.model('Room', roomSchema);
+module.exports = mongoose.model('Room', RoomSchema);
