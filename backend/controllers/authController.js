@@ -2,10 +2,11 @@ const User = require('../models/User');
 const Room = require('../models/Room');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 
 // Helper function to generate JWT Token
 const generateToken = (id, role) => {
-  return jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: '30d' });
+  return jwt.sign({ id, role }, process.env.JWT_SECRET || 'fallback_secret', { expiresIn: '30d' });
 };
 
 // @desc    Register a new Student or Warden
@@ -14,8 +15,10 @@ const registerUser = async (req, res) => {
   try {
     const { name, email, password, role, hostelBlock, roomNumber, phone, secretKey } = req.body;
 
+    const normalizedRole = (role || 'student').toLowerCase();
+
     // 1. Security Gate: Warden/Admin verification
-    if (role === 'warden' || role === 'admin') {
+    if (normalizedRole === 'warden' || normalizedRole === 'admin') {
       const validSecret = process.env.WARDEN_REGISTRATION_SECRET || 'HostelMaster2026!';
       if (!secretKey || secretKey !== validSecret) {
         return res.status(403).json({
@@ -25,14 +28,14 @@ const registerUser = async (req, res) => {
     }
 
     // 2. Check if user already exists
-    const userExists = await User.findOne({ email });
+    const userExists = await User.findOne({ email: email.toLowerCase().trim() });
     if (userExists) {
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    // 3. Room validation for student
+    // 3. Room assignment & auto-creation for student
     let roomQrToken = null;
-    if (role === 'student') {
+    if (normalizedRole === 'student') {
       if (!roomNumber) {
         return res.status(400).json({ message: 'Room number is required for student registration' });
       }
@@ -40,10 +43,21 @@ const registerUser = async (req, res) => {
         return res.status(400).json({ message: 'Mobile number is required for student registration' });
       }
 
-      const room = await Room.findOne({ hostelBlock, roomNumber });
+      // Find room or auto-create if missing
+      let room = await Room.findOne({ 
+        hostelBlock, 
+        roomNumber: roomNumber.toString().trim() 
+      });
+
       if (!room) {
-        return res.status(404).json({ message: 'Assigned room does not exist in system' });
+        room = await Room.create({
+          roomNumber: roomNumber.toString().trim(),
+          hostelBlock,
+          capacity: 3,
+          qrToken: crypto.randomBytes(16).toString('hex')
+        });
       }
+
       roomQrToken = room.qrToken;
     }
 
@@ -51,16 +65,16 @@ const registerUser = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // 5. Create user record with mobile number
+    // 5. Create user record
     const user = await User.create({
-      name,
-      email,
+      name: name.trim(),
+      email: email.toLowerCase().trim(),
       password: hashedPassword,
-      role: role || 'student',
+      role: normalizedRole,
       hostelBlock,
-      roomNumber: role === 'student' ? roomNumber : undefined,
-      roomQrToken: role === 'student' ? roomQrToken : undefined,
-      phone: role === 'student' ? phone.trim() : undefined
+      roomNumber: normalizedRole === 'student' ? roomNumber.toString().trim() : undefined,
+      roomQrToken: normalizedRole === 'student' ? roomQrToken : undefined,
+      phone: normalizedRole === 'student' ? phone.toString().trim() : undefined
     });
 
     res.status(201).json({
@@ -84,7 +98,7 @@ const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
