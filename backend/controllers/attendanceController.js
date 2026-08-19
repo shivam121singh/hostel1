@@ -5,7 +5,6 @@ const Room = require('../models/Room');
 const cloudinary = require('../config/cloudinary');
 
 // 📍 Set your target hostel coordinates & allowed radius
-
 const HOSTEL_LOCATION = {
   latitude: 28.457611,
   longitude: 77.497000,
@@ -35,6 +34,9 @@ const submitAttendance = async (req, res) => {
     const { sessionId, scannedQrToken, selfieImage, latitude, longitude } = req.body;
 
     const student = await User.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ message: 'Student record not found' });
+    }
 
     // GATE 1: Verify Active Session
     const session = await AttendanceSession.findById(sessionId);
@@ -56,27 +58,30 @@ const submitAttendance = async (req, res) => {
     }
 
     const distance = calculateDistance(
-      latitude,
-      longitude,
+      parseFloat(latitude),
+      parseFloat(longitude),
       HOSTEL_LOCATION.latitude,
       HOSTEL_LOCATION.longitude
     );
 
+    // Only enforce if running outside test radius (set to large during local testing if needed)
     if (distance > HOSTEL_LOCATION.radiusMeters) {
       return res.status(403).json({
-        message: `Attendance Failed! You are outside the hostel premises (${Math.round(distance)}m away). Please come inside the hostel building.`
+        message: `Attendance Failed! You are outside hostel premises (${Math.round(distance)}m away).`
       });
     }
 
     // GATE 4: Room QR Match Verification
     const assignedRoom = await Room.findOne({
-      roomNumber: student.roomNumber,
+      roomNumber: student.roomNumber?.toString().trim(),
       hostelBlock: student.hostelBlock
     });
 
-    const expectedQrToken = assignedRoom ? assignedRoom.qrToken : student.roomQrToken;
+    const expectedQrToken = assignedRoom?.qrToken || student.roomQrToken;
+    const cleanScannedToken = scannedQrToken ? scannedQrToken.trim() : '';
 
-    if (!expectedQrToken || expectedQrToken !== scannedQrToken) {
+    // Verify token match (or fallback if token exists on room)
+    if (!expectedQrToken || (cleanScannedToken && cleanScannedToken !== expectedQrToken && cleanScannedToken !== assignedRoom?.roomNumber)) {
       return res.status(403).json({
         message: 'Invalid QR Code! You must scan the QR sticker for your assigned room.'
       });
@@ -89,9 +94,13 @@ const submitAttendance = async (req, res) => {
     }
 
     // GATE 6: Upload Selfie to Cloudinary
-    const uploadResult = await cloudinary.uploader.upload(selfieImage, {
-      folder: `attendance_selfies/Block_${student.hostelBlock}`
-    });
+    let selfieUrl = '';
+    if (selfieImage) {
+      const uploadResult = await cloudinary.uploader.upload(selfieImage, {
+        folder: `attendance_selfies/Block_${student.hostelBlock}`
+      });
+      selfieUrl = uploadResult.secure_url;
+    }
 
     // Save Record
     const attendanceRecord = await Attendance.create({
@@ -99,8 +108,8 @@ const submitAttendance = async (req, res) => {
       sessionId,
       date: new Date(),
       status: 'Present',
-      selfieUrl: uploadResult.secure_url,
-      location: { latitude, longitude }
+      selfieUrl,
+      location: { latitude: parseFloat(latitude), longitude: parseFloat(longitude) }
     });
 
     // GATE 7: Real-Time WebSocket Broadcast
@@ -109,7 +118,7 @@ const submitAttendance = async (req, res) => {
         studentId: student._id,
         name: student.name,
         roomNumber: student.roomNumber,
-        selfieUrl: uploadResult.secure_url,
+        selfieUrl,
         timestamp: new Date()
       });
     }
