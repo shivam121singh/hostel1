@@ -17,13 +17,14 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: '*',
-    methods: ['GET', 'POST']
+    methods: ['GET', 'POST', 'PUT', 'DELETE']
   }
 });
 
 // Middleware
-app.use(cors());
+app.use(cors({ origin: '*' }));
 app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Attach Socket instance to Request object
 app.use((req, res, next) => {
@@ -31,24 +32,23 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use('/api/leaves', require('./routes/leaveRoutes'));
-app.use('/api/complaints', require('./routes/complaintRoutes'));
 // Import Route Handlers
 const authRoutes = require('./routes/authRoutes');
 const sessionRoutes = require('./routes/sessionRoutes');
 const attendanceRoutes = require('./routes/attendanceRoutes');
+const leaveRoutes = require('./routes/leaveRoutes');
+const complaintRoutes = require('./routes/complaintRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
-// Mount Routes
+// Mount Routes (Supports both singular & plural endpoints)
 app.use('/api/auth', authRoutes);
 app.use('/api/session', sessionRoutes);
 app.use('/api/attendance', attendanceRoutes);
-// Add these with your other route mounts in server.js
-app.use('/api/leave', require('./routes/leaveRoutes'));
-app.use('/api/complaint', require('./routes/complaintRoutes'));
-app.use('/api/admin', require('./routes/adminRoutes'));
-
-app.use('/api/leaves', require('./routes/leaveRoutes'));
-app.use('/api/complaints', require('./routes/complaintRoutes'));
+app.use('/api/admin', adminRoutes);
+app.use('/api/leave', leaveRoutes);
+app.use('/api/leaves', leaveRoutes);
+app.use('/api/complaint', complaintRoutes);
+app.use('/api/complaints', complaintRoutes);
 
 // Base Route
 app.get('/', (req, res) => {
@@ -58,7 +58,7 @@ app.get('/', (req, res) => {
 // Socket Listener
 io.on('connection', (socket) => {
   console.log(`Websocket Connected: ${socket.id}`);
-  
+
   socket.on('join_block', (hostelBlock) => {
     socket.join(`block_${hostelBlock}`);
   });
