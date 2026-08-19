@@ -4,31 +4,45 @@ import { AuthContext } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import io from 'socket.io-client';
 
-const socket = io('http://localhost:5000');
+// Use production environment variable with fallback to live Render backend
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'https://hostel1-h0q4.onrender.com';
+const socket = io(SOCKET_URL, {
+  transports: ['websocket', 'polling'],
+  withCredentials: true
+});
+
+// Helper to get local date string (YYYY-MM-DD) avoiding UTC day-lag
+const getTodayLocalDate = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 const RoomMatrix = () => {
   const { user } = useContext(AuthContext);
   const [rooms, setRooms] = useState([]);
-  const [selectedDate, setSelectedDate] = useState(
-    new Date().toISOString().split('T')[0]
-  );
+  const [selectedDate, setSelectedDate] = useState(getTodayLocalDate());
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchMatrix();
-
     if (user?.hostelBlock) {
-      socket.emit('join_block', user.hostelBlock);
+      fetchMatrix();
+
+      // Normalize block room identifier
+      const blockRoom = `block_${user.hostelBlock.replace(/\s+/g, '_').toLowerCase()}`;
+      socket.emit('join_block', blockRoom);
 
       // Real-time listener for live check-ins
-      socket.on('student_checked_in', (data) => {
+      const handleCheckIn = (data) => {
         setRooms((prevRooms) =>
           prevRooms.map((room) => {
             if (String(room.roomNumber) === String(data.roomNumber)) {
               const updatedStudents = room.students.map((st) =>
-                st._id === data.studentId
+                String(st._id) === String(data.studentId)
                   ? {
                       ...st,
                       isPresent: true,
@@ -43,18 +57,20 @@ const RoomMatrix = () => {
             return room;
           })
         );
-      });
-    }
+      };
 
-    return () => {
-      socket.off('student_checked_in');
-    };
+      socket.on('student_checked_in', handleCheckIn);
+
+      return () => {
+        socket.off('student_checked_in', handleCheckIn);
+      };
+    }
   }, [user?.hostelBlock, selectedDate]);
 
   const fetchMatrix = async () => {
     try {
       setLoading(true);
-      const res = await API.get(`/session/room-matrix/${user.hostelBlock}?date=${selectedDate}`);
+      const res = await API.get(`/session/room-matrix/${encodeURIComponent(user.hostelBlock)}?date=${selectedDate}`);
       setRooms(res.data);
     } catch (err) {
       console.error('Error loading room matrix:', err);

@@ -162,15 +162,14 @@ const getHostelAttendanceHistory = async (req, res) => {
     if (status) {
       query.status = status;
     }
+if (date) {
+      // Create date range for full Indian day (00:00:00 to 23:59:59 IST)
+      // IST is UTC+5:30 (-330 minutes)
+      const start = new Date(`${date}T00:00:00.000+05:30`);
+      const end = new Date(`${date}T23:59:59.999+05:30`);
 
-    if (date) {
-      const start = new Date(date);
-      start.setHours(0, 0, 0, 0);
-      const end = new Date(date);
-      end.setHours(23, 59, 59, 999);
       query.createdAt = { $gte: start, $lte: end };
     }
-
     const records = await Attendance.find(query)
       .populate('studentId', 'name email roomNumber hostelBlock')
       .populate('sessionId', 'startTime endTime hostelBlock')
