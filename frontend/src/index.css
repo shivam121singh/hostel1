@@ -113,7 +113,6 @@ html, body, #root {
   text-align: center;
 }
 
-
 /* Dashboard Layout */
 .navbar {
   background-color: var(--card-bg);
@@ -165,12 +164,6 @@ html, body, #root {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1.5rem;
-}
-
-@media (max-width: 768px) {
-  .grid-2 {
-    grid-template-columns: 1fr;
-  }
 }
 
 .card {
@@ -245,14 +238,24 @@ html, body, #root {
 }
 
 .landing-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
   font-size: 1.5rem;
-  font-weight: 700;
+  font-weight: 900;
   color: #ffffff;
   letter-spacing: -0.5px;
 }
 
 .landing-brand span {
   color: #6366f1;
+}
+
+.landing-logo {
+  width: 250px;
+  height: 80px;
+  border-radius: 0px;
+  object-fit: cover;
 }
 
 .landing-links {
@@ -304,7 +307,6 @@ html, body, #root {
   box-sizing: border-box;
 }
 
-/* Dark Gradient Overlay for Readability */
 .hero-overlay {
   position: absolute;
   top: 0;
@@ -447,20 +449,181 @@ html, body, #root {
   font-size: 0.95rem;
   line-height: 1.5;
 }
-/* logo css */
-.landing-brand {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  font-size: 1.5rem;
-  font-weight: 900;
-  color: #ffffff;
-  letter-spacing: -0.5px;
+
+/* =========================================================
+   RESPONSIVE LAYOUT BREAKPOINTS
+   ========================================================= */
+
+@media (max-width: 768px) {
+  /* 1. Global & Typography */
+  body, html {
+    font-size: 14.5px;
+  }
+
+  .grid-2 {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  /* 2. Top Navigation Bar */
+  .landing-nav {
+    padding: 0.75rem 1rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    background: #0f172a;
+    border-bottom: 1px solid #1e293b;
+  }
+
+  .landing-logo {
+    width: 140px;
+    height: auto;
+    max-height: 40px;
+    object-fit: contain;
+  }
+
+  .landing-brand {
+    font-size: 1.15rem;
+  }
+
+  .landing-links {
+    gap: 0.6rem;
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .landing-link {
+    font-size: 0.85rem;
+  }
+
+  .btn-nav-primary {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+  }
+
+  /* 3. Hero Section */
+  .hero-section {
+    padding: 7rem 1rem 3rem 1rem;
+    min-height: auto;
+  }
+
+  .hero-title {
+    font-size: 1.95rem;
+    line-height: 1.25;
+  }
+
+  .hero-subtitle {
+    font-size: 0.95rem;
+    margin-bottom: 1.75rem;
+  }
+
+  .hero-actions {
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
+  }
+
+  .btn-hero-primary,
+  .btn-hero-secondary {
+    width: 100%;
+    padding: 0.8rem;
+    text-align: center;
+  }
+
+  /* 4. Features Grid */
+  .features-section {
+    padding: 3rem 1rem;
+  }
+
+  .features-heading {
+    margin-bottom: 2rem;
+  }
+
+  .features-heading h2 {
+    font-size: 1.6rem;
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  .feature-box {
+    padding: 1.25rem;
+  }
+
+  /* 5. Auth / Login / Registration */
+  .auth-container {
+    padding: 1rem 0.75rem;
+  }
+
+  .auth-card {
+    padding: 1.5rem 1.25rem;
+    border-radius: 10px;
+    max-width: 100%;
+  }
+
+  .auth-title {
+    font-size: 1.5rem;
+  }
+
+  /* 6. Dashboard Interface */
+  .navbar {
+    padding: 0.75rem 1rem;
+  }
+
+  .nav-brand {
+    font-size: 1.05rem;
+  }
+
+  .nav-user {
+    gap: 0.5rem;
+    font-size: 0.85rem;
+  }
+
+  .dashboard-container {
+    padding: 0 0.75rem;
+    margin: 1rem auto;
+  }
+
+  .card {
+    padding: 1rem;
+  }
+
+  .scanner-box {
+    max-width: 100%;
+    aspect-ratio: 1 / 1;
+  }
+
+  /* 7. Scrollable Data Tables */
+  .custom-table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .custom-table th, 
+  .custom-table td {
+    padding: 0.55rem 0.65rem;
+    font-size: 0.8rem;
+  }
 }
 
-.landing-logo {
-  width: 250px;
-  height: 80px;
-  border-radius: 0px;
-  object-fit: cover;
+@media (max-width: 480px) {
+  .landing-nav {
+    justify-content: center;
+  }
+
+  .landing-links {
+    justify-content: center;
+  }
+
+  .landing-brand {
+    margin: 0 auto;
+  }
+
+  .auth-card {
+    box-shadow: none;
+  }
 }
