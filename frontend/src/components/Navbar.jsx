@@ -25,8 +25,8 @@ const Navbar = () => {
 
   return (
     <nav style={{
-      backgroundColor: '#0f172a',
-      borderBottom: '1px solid #1e293b',
+      backgroundColor: 'rgb(242, 244, 249)',
+      borderBottom: '1px solid #f3f6fa',
       position: 'sticky',
       top: 0,
       zIndex: 100,
